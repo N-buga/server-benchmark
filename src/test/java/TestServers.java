@@ -105,6 +105,8 @@ public class TestServers {
         List<Integer> sortedArray = client.sortArray(randomArray);
         Collections.sort(randomArray);
         assertEquals(randomArray, sortedArray);
+        sortedArray = client.sortArray(randomArray);
+        assertEquals(randomArray, sortedArray);
         client.closeConnection();
 
         client = new ClientTCP();

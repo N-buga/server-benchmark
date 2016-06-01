@@ -20,6 +20,7 @@ public abstract class SocketIOServer implements BaseServer {
 
     @Override
     public void start() {
+        end = false;
         Thread server = new Thread(this::handlerConnection);
         server.start();
         try {

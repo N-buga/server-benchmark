@@ -20,8 +20,9 @@ public class NewQueryNewThread extends UDPServer {
     }
 
     @Override
-    protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted) {
-        (new Thread(() -> countAndSend(remotePort, remoteAddress, arrayForSorted))).start();
+    protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+                                long beginQueryHandler) {
+        (new Thread(() -> countAndSend(remotePort, remoteAddress, arrayForSorted, beginQueryHandler))).start();
     }
 
 }

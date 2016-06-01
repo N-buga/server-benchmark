@@ -1,6 +1,7 @@
 package client;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.common.primitives.Longs;
+import org.apache.commons.lang3.ArrayUtils;
 import utils.Protocol;
 import utils.Utils;
 
@@ -12,18 +13,20 @@ import java.util.List;
 /**
  * Created by n_buga on 01.06.16.
  */
-public class ClientUDP {
+public class ClientUDP extends Client {
     private int serverPort;
     private String serverIP;
 
     public ClientUDP() {
     }
 
+    @Override
     public void createConnection(int port, String ip) {
         serverPort = port;
         serverIP = ip;
     }
 
+    @Override
     public void closeConnection() {
         try (DatagramSocket s = new DatagramSocket())
         {
@@ -37,6 +40,7 @@ public class ClientUDP {
         }
     }
 
+    @Override
     public List<Integer> sortArray(List<Integer> array) {
         int port;
         Protocol.ArrayProto arrayProto = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
@@ -44,15 +48,13 @@ public class ClientUDP {
         {
             port = s.getLocalPort();
             InetAddress ip = InetAddress.getByName(serverIP);
+
             byte[] arrayProtoSize = Utils.intToByteArray(arrayProto.getSerializedSize());
-            DatagramPacket sizePacket = new DatagramPacket(arrayProtoSize,
-                    arrayProtoSize.length, ip, serverPort);
-            s.send(sizePacket);
+            byte[] data = ArrayUtils.addAll(arrayProtoSize, arrayProto.toByteArray());
 
-            DatagramPacket arrayPacket = new DatagramPacket(arrayProto.toByteArray(), arrayProto.getSerializedSize(),
-                    ip, serverPort);
-            s.send(arrayPacket);
-
+            DatagramPacket dataPacket = new DatagramPacket(data,
+                    data.length, ip, serverPort);
+            s.send(dataPacket);
         } catch (UnknownHostException | SocketException e) {
             e.printStackTrace();
             return null;
@@ -61,19 +63,27 @@ public class ClientUDP {
             return null;
         }
 
-        int sizeByteArray;
-
         try (DatagramSocket s = new DatagramSocket(port)){
-            byte[] byteSize = new byte [4];
-            DatagramPacket sizePacket = new DatagramPacket(byteSize, byteSize.length);
-            s.receive(sizePacket);
-            sizeByteArray = Utils.fromByteArray(byteSize);
+            byte[] data = new byte[200000];
+            DatagramPacket dataPacket = new DatagramPacket(data, data.length);
+            s.receive(dataPacket);
 
-            byte[] byteArray = new byte[sizeByteArray];
-            DatagramPacket arrayPacket = new DatagramPacket(byteArray, byteArray.length);
-            s.receive(arrayPacket);
+            int readBytes = 0;
+            byte[] byteSize = ArrayUtils.subarray(data, readBytes, readBytes + 4);
+            readBytes += byteSize.length;
+            byte[] byteArray = ArrayUtils.subarray(data, readBytes, readBytes + Utils.fromByteArray(byteSize));
+            readBytes += byteArray.length;
+            byte[] timeQueryHandlerBytes = ArrayUtils.subarray(data, readBytes, readBytes + 8);
+            readBytes += 8;
+            byte[] timeQueryCountBytes = ArrayUtils.subarray(data, readBytes, readBytes + 8);
+
+            timeQueryCount.add(Longs.fromByteArray(timeQueryCountBytes));
+            timeQueryHandler.add(Longs.fromByteArray(timeQueryHandlerBytes));
+
             Protocol.ArrayProto arraySortedProto = Protocol.ArrayProto.parseFrom(byteArray);
+
             return arraySortedProto.getElementList();
+
         } catch (IOException e) {
             e.printStackTrace();
             return null;

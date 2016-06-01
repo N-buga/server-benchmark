@@ -1,5 +1,6 @@
 package servers.TCP;
 
+import servers.UDP.NewQueryNewThread;
 import utils.Utils;
 
 import java.io.IOException;
@@ -13,6 +14,10 @@ import java.net.SocketTimeoutException;
 public class NewQueryNewConnection extends SocketIOServer {
     final private int PORT = 9991;
 
+    public NewQueryNewConnection() {
+        super();
+    }
+
     @Override
     protected void handlerConnection() {
         try (ServerSocket serverSocket = new ServerSocket(PORT)){
@@ -24,9 +29,14 @@ public class NewQueryNewConnection extends SocketIOServer {
                 } catch (SocketTimeoutException e) {
                     continue;
                 }
-                Utils.Connection connection = new Utils.Connection(socket, "", 0);
+                Utils.Connection connection = new Utils.Connection(socket);
                 oneQueryHandler(connection);
                 connection.close();
+                try {
+                    Thread.sleep(TIMEOUT);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -1,6 +1,8 @@
 package UI;
 
+import client.Client;
 import client.ClientTCP;
+import client.ClientUDP;
 import com.google.common.primitives.Doubles;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
@@ -66,7 +68,8 @@ public final class UserInterface {
         JLabel labelArchitecture = new JLabel("Architecture:");
 
         String[] architectures = {"TCP.OneClientOneThread", "NIO.OneThread", "TCP.CachedThreadPoolServer",
-                "TCP.NewQueryNewConnection", "NIO.CachedThreadPool", "NIO.FixedThreadPool", "NIO.NewQueryNewThread"};
+                "TCP.NewQueryNewConnection", "NIO.CachedThreadPool", "NIO.FixedThreadPool", "NIO.NewQueryNewThread",
+                "UDP.FixedThreadPool", "UDP.NewQueryNewThread"};
         String[] changeableParameter = {"clients", "Delta", "size"};
         String[] showHideParameter = {HIDE_SEPARATE_GRAPHS, SHOW_SEPARATE_GRAPHS};
 
@@ -338,11 +341,16 @@ public final class UserInterface {
                     double averageQueryHandler = 0;
                     double averageQueryCount = 0;
                     ArrayList<Future<Long>> tasks = new ArrayList<>();
-                    ArrayList<ClientTCP> clients = new ArrayList<>();
+                    ArrayList<Client> clients = new ArrayList<>();
                     for (int j = 0; j < countOfClients; j++) {
                         final int finalArraySize = arraySize;
                         final int finalDeltaTime = deltaTime;
-                        ClientTCP client = new ClientTCP();
+                        Client client;
+                        if (architectureName.charAt(0) == 'U') {
+                            client = new ClientUDP();
+                        } else {
+                            client = new ClientTCP();
+                        }
                         clients.add(client);
                         Future<Long> averageTime = cachedThreadPool.submit(
                                 () -> Utils.getQueries(server, countOfQueries, finalArraySize,

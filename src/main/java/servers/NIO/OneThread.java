@@ -107,13 +107,7 @@ public class OneThread extends NIOServer {
             times.putLong(attachObject.getValue()[1]);
             times.flip();
             writeAllBuffer(socketChannel, times);
-            try {
-                socketChannel.register(selector, SelectionKey.OP_READ);
-            } catch (ClosedChannelException e) {
-                e.printStackTrace();
-            }
-            selectionKey.cancel();
-
+            selectionKey.interestOps(SelectionKey.OP_READ);
         }
     }
 

@@ -7,20 +7,20 @@ import utils.Utils;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by n_buga on 28.05.16.
  */
-public class ClientTCP {
+public class ClientTCP extends Client{
     private Utils.Connection connection;
-    private List<Long> timeQueryHandler = new ArrayList<>();
-    private List<Long> timeQueryCount = new ArrayList<>();
 
     public ClientTCP() {
     }
 
+    @Override
     public void createConnection(int port, String ip) {
         try {
             Socket clientSocket = new Socket(ip, port);
@@ -30,6 +30,7 @@ public class ClientTCP {
         }
     }
 
+    @Override
     public void closeConnection() {
         try {
             connection.toConnection.writeInt(-1);
@@ -38,19 +39,27 @@ public class ClientTCP {
         connection.close();
     }
 
+    @Override
     public List<Integer> sortArray(List<Integer> array) {
-        if (connection.getSocket().isClosed()) {
-            createConnection(connection.getPort(), connection.getIp());
-        }
+        Protocol.ArrayProto arrayProto = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
         try {
-            Protocol.ArrayProto arrayProto = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
             connection.toConnection.writeInt(arrayProto.getSerializedSize());
             connection.toConnection.write(arrayProto.toByteArray());
-        } catch (IOException e) {
+        } catch (SocketException e) {
+            connection.close();
+            createConnection(connection.getPort(), connection.getIp());
+            try {
+                connection.toConnection.writeInt(arrayProto.getSerializedSize());
+                connection.toConnection.write(arrayProto.toByteArray());
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        }
+        catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-        int countBytes = 0;
+        int countBytes;
         try {
             countBytes = connection.fromConnection.readInt();
         } catch (IOException e) {
@@ -85,14 +94,7 @@ public class ClientTCP {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return sortedArray.getElementList();
-    }
-
-    public double getHandlerTimeQuery() {
-        return ((double) timeQueryHandler.stream().reduce(0L, (a, b) -> a + b))/ timeQueryHandler.size();
-    }
-
-    public double getHandlerCountQuery() {
-        return ((double) timeQueryCount.stream().reduce(0L, (a, b) -> a + b))/ timeQueryCount.size();
     }
 }

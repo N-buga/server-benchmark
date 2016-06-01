@@ -122,13 +122,7 @@ abstract public class NIOThreadPool extends NIOServer {
             times.flip();
             writeAllBuffer(socketChannel, times);
 
-            try {
-                socketChannel.register(selector, SelectionKey.OP_READ);
-            } catch (ClosedChannelException e) {
-                e.printStackTrace();
-            }
-
-            selectionKey.cancel();
+            selectionKey.interestOps(SelectionKey.OP_READ);
         }
     }
 

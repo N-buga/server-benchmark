@@ -1,7 +1,9 @@
 package utils;
 
 import UI.Parameter;
+import client.Client;
 import client.ClientTCP;
+import com.google.common.primitives.Longs;
 import servers.BaseServer;
 
 import java.io.DataInputStream;
@@ -120,7 +122,7 @@ public class Utils {
     }
 
     public static Long getQueries(BaseServer server, int countOfQueries, int arraySize, int deltaTime,
-                                  String ip, ClientTCP client) {
+                                  String ip, Client client) {
         client.createConnection(server.getPort(), ip);
         long beginTime = System.currentTimeMillis();
         for (int i = 0; i < countOfQueries; i++) {
@@ -143,6 +145,10 @@ public class Utils {
                 (byte)(value >>> 16),
                 (byte)(value >>> 8),
                 (byte)value};
+    }
+
+    public static byte[] longToByteArray(long value) {
+        return Longs.toByteArray(value);
     }
 
     public static int fromByteArray(byte[] bytes) {

@@ -29,7 +29,8 @@ public class FixedThreadPool extends UDPServer{
     }
 
     @Override
-    protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted) {
-        EXECUTOR_SERVICE.submit(() -> countAndSend(remotePort, remoteAddress, arrayForSorted));
+    protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+                                long beginQueryHandler) {
+        EXECUTOR_SERVICE.submit(() -> countAndSend(remotePort, remoteAddress, arrayForSorted, beginQueryHandler));
     }
 }

@@ -97,7 +97,9 @@ public class NewQueryNewThread extends NIOServer {
                 result.setThread(new Thread(result::sort));
                 result.getThread().start();
                 long endTimeQueryCount = System.currentTimeMillis();
+
                 selectionKey = selectionKey.interestOps(SelectionKey.OP_WRITE);
+
                 selectionKey.attach(new Pair<>(result,
                         new long[]{beginTimeQueryHandler, endTimeQueryCount - beginTimeQueryCount}));
             } catch (IOException e) {
@@ -134,12 +136,7 @@ public class NewQueryNewThread extends NIOServer {
             times.flip();
             writeAllBuffer(socketChannel, times);
 
-            try {
-                socketChannel.register(selector, SelectionKey.OP_READ);
-            } catch (ClosedChannelException e) {
-                e.printStackTrace();
-            }
-            selectionKey.cancel();
+            selectionKey.interestOps(SelectionKey.OP_READ);
         }
     }
 

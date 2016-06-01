@@ -1,9 +1,11 @@
 package servers.UDP;
 
+import org.apache.commons.lang3.ArrayUtils;
 import servers.BaseServer;
 import utils.Protocol;
 import utils.Utils;
 
+import javax.rmi.CORBA.Util;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -50,23 +52,25 @@ abstract public class UDPServer implements BaseServer {
             s.setSoTimeout(TIMEOUT);
             while (!end) {
                 int sizeByteArray;
-                byte[] byteSize = new byte[4];
-                DatagramPacket sizePacket = new DatagramPacket(byteSize, byteSize.length);
+                byte[] data = new byte[20000];
+                DatagramPacket dataPacket = new DatagramPacket(data, data.length);
+                long beginQueryHandler = System.currentTimeMillis();
                 try {
-                    s.receive(sizePacket);
+                    s.receive(dataPacket);
                 } catch (SocketTimeoutException e) {
                     continue;
                 }
-                sizeByteArray = Utils.fromByteArray(byteSize);
+
+                byte[] size = ArrayUtils.subarray(data, 0, 4);
+                sizeByteArray = Utils.fromByteArray(size);
                 if (sizeByteArray == -1) {
                     continue;
                 }
-                byte[] byteArray = new byte[sizeByteArray];
-                DatagramPacket arrayPacket = new DatagramPacket(byteArray, byteArray.length);
-                s.receive(arrayPacket);
+                byte[] byteArray = ArrayUtils.subarray(data, 4, sizeByteArray + 4);
+
                 Protocol.ArrayProto arrayForSorted = Protocol.ArrayProto.parseFrom(byteArray);
-                handlerQuery(arrayPacket.getPort(), arrayPacket.getAddress().getHostName(),
-                    arrayForSorted.getElementList());
+                handlerQuery(dataPacket.getPort(), dataPacket.getAddress().getHostName(),
+                    arrayForSorted.getElementList(), beginQueryHandler);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -74,8 +78,12 @@ abstract public class UDPServer implements BaseServer {
         }
     }
 
-    protected void countAndSend(int remotePort, String remoteAddress, List<Integer> arrayForSorted) {
+    protected void countAndSend(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+                                long beginQueryHandler) {
+
+        long beginQueryCount = System.currentTimeMillis();
         List<Integer> result = Utils.sort(arrayForSorted);
+        long endQueryCount = System.currentTimeMillis();
 
         Protocol.ArrayProto arrayProto = Protocol.ArrayProto.newBuilder().addAllElement(result).build();
 
@@ -83,18 +91,18 @@ abstract public class UDPServer implements BaseServer {
         {
             InetAddress ip = InetAddress.getByName(remoteAddress);
             byte[] arrayProtoSize = Utils.intToByteArray(arrayProto.getSerializedSize());
-            DatagramPacket sizePacket = new DatagramPacket(arrayProtoSize,
-                    arrayProtoSize.length, ip, remotePort);
-            s.send(sizePacket);
+            byte[] data = ArrayUtils.addAll(arrayProtoSize, arrayProto.toByteArray());
+            data = ArrayUtils.addAll(data, Utils.longToByteArray(System.currentTimeMillis() - beginQueryHandler));
+            data = ArrayUtils.addAll(data, Utils.longToByteArray(endQueryCount - beginQueryCount));
 
-            DatagramPacket arrayPacket = new DatagramPacket(arrayProto.toByteArray(), arrayProto.getSerializedSize(),
-                    ip, remotePort);
-            s.send(arrayPacket);
-
+            DatagramPacket dataPacket = new DatagramPacket(data,
+                    data.length, ip, remotePort);
+            s.send(dataPacket);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    abstract protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted);
+    abstract protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+                                         long beginQueryHandler);
 }
