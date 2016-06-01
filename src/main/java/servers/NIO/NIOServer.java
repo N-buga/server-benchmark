@@ -92,7 +92,7 @@ abstract public class NIOServer implements BaseServer {
     private void startWork() {
         try (ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
              Selector selector = Selector.open()) {
-            serverSocketChannel.bind(new InetSocketAddress(getPort()));
+            serverSocketChannel.bind(new InetSocketAddress(getPort()), 100);
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
             clientsHandler(selector);

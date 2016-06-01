@@ -162,6 +162,7 @@ public final class UserInterface {
 
                             (new Thread(() -> {
                                 for (int i = 0; i < architectures.length - 1; i++) {
+                                    System.out.println(architectures[i]);
                                     final int j = i;
                                     SwingUtilities.invokeLater(() -> dpb.setValue(j));
                                     accountManager(architectures[i], jTextField.getText());

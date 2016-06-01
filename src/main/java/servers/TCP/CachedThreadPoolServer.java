@@ -39,7 +39,7 @@ public class CachedThreadPoolServer extends SocketIOServer {
 
     @Override
     protected void handlerConnection() {
-        try (ServerSocket serverSocket = new ServerSocket(PORT)){
+        try (ServerSocket serverSocket = new ServerSocket(PORT, 100)){
             serverSocket.setSoTimeout(TIMEOUT);
             while (!end) {
                 Socket socket;
