@@ -15,6 +15,10 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -320,7 +324,10 @@ public final class UserInterface {
 
         ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
         int countOfQueries = parameters.get(DESCRIPTION_COUNT_OF_QUERIES).getFrom();
+
         Parameter arraySizeParameter = parameters.get(DESCRIPTION_SIZE_ARRAY);
+        Parameter deltaTimeParameter = parameters.get(DESCRIPTION_DELTA_TIME);
+        Parameter clientsParameter = parameters.get(DESCRIPTION_COUNT_OF_CLIENTS);
 
         ArrayList<Double> xDataClient = new ArrayList<>();
         ArrayList<Double> xDataQueryHandler = new ArrayList<>();
@@ -329,12 +336,12 @@ public final class UserInterface {
         ArrayList<Double> yDataQueryHandler = new ArrayList<>();
         ArrayList<Double> yDataQueryCount = new ArrayList<>();
 
+        String xString = "M";
+
         for (int arraySize = arraySizeParameter.getFrom(); arraySize <= arraySizeParameter.getTo();
                 arraySize += arraySizeParameter.getStep()) {
-            Parameter deltaTimeParameter = parameters.get(DESCRIPTION_DELTA_TIME);
             for (int deltaTime = deltaTimeParameter.getFrom(); deltaTime <= deltaTimeParameter.getTo();
                     deltaTime += deltaTimeParameter.getStep()) {
-                Parameter clientsParameter = parameters.get(DESCRIPTION_COUNT_OF_CLIENTS);
                 for (int countOfClients = clientsParameter.getFrom(); countOfClients <= clientsParameter.getTo();
                         countOfClients += clientsParameter.getStep()) {
                     double averageClient = 0;
@@ -370,7 +377,6 @@ public final class UserInterface {
                     yDataClient.add(averageClient);
                     yDataQueryHandler.add(averageQueryHandler);
                     yDataQueryCount.add(averageQueryCount);
-                    String xString;
                     if (arraySizeParameter.isChangeable()) {
                         xDataClient.add((double)arraySize);
                         xDataQueryHandler.add((double) arraySize);
@@ -398,6 +404,13 @@ public final class UserInterface {
             frameQueryHandler.setVisible(true);
             frameQueryCount.setVisible(true);
         }
+
+        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                    xDataClient, yDataClient, "Client handler", countOfQueries);
+        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                    xDataQueryHandler, yDataQueryHandler, "Query handler", countOfQueries);
+        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                    xDataQueryCount, yDataQueryCount, "Query count", countOfQueries);
     }
 
     private static void createXChart(String architectureName, List<Double> xDataClient, List<Double> yDataClient,
@@ -459,4 +472,65 @@ public final class UserInterface {
         frameQueryCount.setSize(600, 400);
     }
 
+    private static void toFile(String architecture, String xString,
+                               Parameter arraySizeParameter, Parameter deltaParameter, Parameter clientsParameter,
+                               List<Double> metricX, List<Double> metricY, String metric, int countOfQueries) {
+
+        Path pathDirectoryResults = Paths.get(".", "results");
+        if (!Files.exists(pathDirectoryResults)) {
+            try {
+                Files.createDirectory(pathDirectoryResults);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Path pathDirectoryFiles = Paths.get(pathDirectoryResults.toString(), "Data_files");
+        if (!Files.exists(pathDirectoryFiles)) {
+            try {
+                Files.createDirectory(pathDirectoryFiles);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String fileName = architecture + "_change_" + xString + "_metric_" + metric + ".csv";
+        Path dataFilePath = Paths.get(pathDirectoryFiles.toString(), fileName);
+        try {
+            Files.deleteIfExists(dataFilePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            Files.createFile(dataFilePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try (PrintWriter printer = new PrintWriter(new FileOutputStream(dataFilePath.toString(), true))) {
+            printer.printf("Count of queries = %d\n", countOfQueries);
+            if (arraySizeParameter.isChangeable()) {
+                printer.printf("Array size changes from %d to %d with step %d\n", arraySizeParameter.getFrom(),
+                        arraySizeParameter.getTo(), arraySizeParameter.getStep());
+                printer.printf("Delta = %d\n", deltaParameter.getFrom());
+                printer.printf("Clients = %d\n", clientsParameter.getFrom());
+            } else if (deltaParameter.isChangeable()) {
+                printer.printf("Array size = %d\n", arraySizeParameter.getFrom());
+                printer.printf("Delta changes from %d to %d with step %d\n", deltaParameter.getFrom(),
+                        deltaParameter.getTo(), deltaParameter.getStep());
+                printer.printf("Clients = %d\n", clientsParameter.getFrom());
+            } else {
+                printer.printf("Array size = %d\n", arraySizeParameter.getFrom());
+                printer.printf("Delta = %d\n", deltaParameter.getFrom());
+                printer.printf("Count of clients changes from %d to %d with step %d\n", clientsParameter.getFrom(),
+                        clientsParameter.getTo(), clientsParameter.getStep());
+            }
+            printer.println(xString + ", Time ms");
+            for (int i = 0; i < metricX.size(); i++) {
+                printer.printf("%f %f\n", metricX.get(i), metricY.get(i));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
 }
