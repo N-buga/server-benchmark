@@ -4,6 +4,7 @@ import client.Client;
 import client.ClientTCP;
 import client.ClientUDP;
 import com.google.common.primitives.Doubles;
+import javafx.embed.swing.SwingFXUtils;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 import servers.BaseServer;
@@ -73,7 +74,7 @@ public final class UserInterface {
 
         String[] architectures = {"TCP.OneClientOneThread", "NIO.OneThread", "TCP.CachedThreadPoolServer",
                 "TCP.NewQueryNewConnection", "NIO.CachedThreadPool", "NIO.FixedThreadPool", "NIO.NewQueryNewThread",
-                "UDP.FixedThreadPool", "UDP.NewQueryNewThread"};
+                "UDP.FixedThreadPool", "UDP.NewQueryNewThread", "CountForAll"};
         String[] changeableParameter = {"clients", "Delta", "size"};
         String[] showHideParameter = {HIDE_SEPARATE_GRAPHS, SHOW_SEPARATE_GRAPHS};
 
@@ -131,7 +132,33 @@ public final class UserInterface {
         JButton doCount = new JButton("Count!");
         doCount.setPreferredSize(new Dimension(350, 25));
         doCount.addActionListener(e -> {
-            accountManager((String) choiceArchitecture.getSelectedItem(), jTextField.getText());
+            String selectedItem = (String) choiceArchitecture.getSelectedItem();
+            if (selectedItem.equals("CountForAll")) {
+                SwingUtilities.invokeLater(() -> {
+                            final JDialog dlg = new JDialog(FRAME, "Progress Dialog", true);
+                            JProgressBar dpb = new JProgressBar(0, architectures.length - 1);
+                            dlg.add(BorderLayout.CENTER, dpb);
+                            dlg.add(BorderLayout.NORTH, new JLabel("Progress..."));
+                            dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+                            dlg.setSize(300, 75);
+                            dlg.setLocationRelativeTo(FRAME);
+
+                            (new Thread(() -> {
+                                for (int i = 0; i < architectures.length - 1; i++) {
+                                    final int j = i;
+                                    SwingUtilities.invokeLater(() -> dpb.setValue(j));
+                                    accountManager(architectures[i], jTextField.getText());
+                                }
+                                SwingUtilities.invokeLater(() -> dpb.setValue(architectures.length - 1));
+                                SwingUtilities.invokeLater(() -> dlg.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE));
+//                                Utils.mergeFiles();
+                            })).start();
+                            dlg.setVisible(true);
+                        }
+                );
+            } else {
+                accountManager(selectedItem, jTextField.getText());
+            }
         });
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(doCount);
