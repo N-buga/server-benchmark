@@ -3,8 +3,6 @@ package UI;
 import client.Client;
 import client.ClientTCP;
 import client.ClientUDP;
-import com.google.common.primitives.Doubles;
-import javafx.embed.swing.SwingFXUtils;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 import servers.BaseServer;
@@ -22,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +40,16 @@ public final class UserInterface {
     private static final String DESCRIPTION_COUNT_OF_QUERIES = "Count of queries:";
     private static final String HIDE_SEPARATE_GRAPHS = "hide separate";
     private static final String SHOW_SEPARATE_GRAPHS = "show separate";
+    private static final List<String> metricsDescription = new ArrayList<String>() {{
+        add("Client handler");
+        add("Query handler");
+        add("Query count");
+    }};
+    private static Map<String, String> briefNameParameter = new HashMap<String, String>() {{
+        put(DESCRIPTION_DELTA_TIME, "Delta");
+        put(DESCRIPTION_COUNT_OF_CLIENTS, "M");
+        put(DESCRIPTION_COUNT_OF_QUERIES, "N");
+    }};
     private static Map<String, Parameter> parameters = new HashMap<>();
     private static JFrame frameClient = new JFrame();
     private static JFrame frameQueryHandler = new JFrame();
@@ -132,6 +139,16 @@ public final class UserInterface {
         JButton doCount = new JButton("Count!");
         doCount.setPreferredSize(new Dimension(350, 25));
         doCount.addActionListener(e -> {
+            String xString = briefNameParameter.get((String)choiceParameter.getSelectedItem());
+            for (String metric: metricsDescription) {
+                String fileName = "change_" + xString + "_metric_" + metric + ".csv";
+                Path pathFile = Paths.get(".", "results", "Data_files", fileName);
+                try {
+                    Files.deleteIfExists(pathFile);
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
             String selectedItem = (String) choiceArchitecture.getSelectedItem();
             if (selectedItem.equals("CountForAll")) {
                 SwingUtilities.invokeLater(() -> {
@@ -151,13 +168,14 @@ public final class UserInterface {
                                 }
                                 SwingUtilities.invokeLater(() -> dpb.setValue(architectures.length - 1));
                                 SwingUtilities.invokeLater(() -> dlg.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE));
-//                                Utils.mergeFiles();
                             })).start();
                             dlg.setVisible(true);
                         }
                 );
             } else {
-                accountManager(selectedItem, jTextField.getText());
+                new Thread(() -> {
+                    accountManager(selectedItem, jTextField.getText());
+                }).start();
             }
         });
         JPanel buttonPanel = new JPanel();
@@ -432,12 +450,10 @@ public final class UserInterface {
             frameQueryCount.setVisible(true);
         }
 
-        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
-                    xDataClient, yDataClient, "Client handler", countOfQueries);
-        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
-                    xDataQueryHandler, yDataQueryHandler, "Query handler", countOfQueries);
-        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
-                    xDataQueryCount, yDataQueryCount, "Query count", countOfQueries);
+        for (String metric: metricsDescription) {
+            toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                    xDataClient, yDataClient, metric, countOfQueries);
+        }
     }
 
     private static void createXChart(String architectureName, List<Double> xDataClient, List<Double> yDataClient,
@@ -521,40 +537,45 @@ public final class UserInterface {
             }
         }
 
-        String fileName = architecture + "_change_" + xString + "_metric_" + metric + ".csv";
+        String fileName = "change_" + xString + "_metric_" + metric + ".csv";
         Path dataFilePath = Paths.get(pathDirectoryFiles.toString(), fileName);
-        try {
-            Files.deleteIfExists(dataFilePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            Files.createFile(dataFilePath);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!Files.exists(dataFilePath)) {
+            try {
+                Files.createFile(dataFilePath);
+                try (PrintWriter printer = new PrintWriter(new FileOutputStream(dataFilePath.toString(), true))) {
+                    printer.printf("Count of queries = %d\n", countOfQueries);
+                    if (arraySizeParameter.isChangeable()) {
+                        printer.printf("Array size changes from %d to %d with step %d\n", arraySizeParameter.getFrom(),
+                                arraySizeParameter.getTo(), arraySizeParameter.getStep());
+                        printer.printf("Delta = %d\n", deltaParameter.getFrom());
+                        printer.printf("Clients = %d\n", clientsParameter.getFrom());
+                    } else if (deltaParameter.isChangeable()) {
+                        printer.printf("Array size = %d\n", arraySizeParameter.getFrom());
+                        printer.printf("Delta changes from %d to %d with step %d\n", deltaParameter.getFrom(),
+                                deltaParameter.getTo(), deltaParameter.getStep());
+                        printer.printf("Clients = %d\n", clientsParameter.getFrom());
+                    } else {
+                        printer.printf("Array size = %d\n", arraySizeParameter.getFrom());
+                        printer.printf("Delta = %d\n", deltaParameter.getFrom());
+                        printer.printf("Count of clients changes from %d to %d with step %d\n", clientsParameter.getFrom(),
+                                clientsParameter.getTo(), clientsParameter.getStep());
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         try (PrintWriter printer = new PrintWriter(new FileOutputStream(dataFilePath.toString(), true))) {
-            printer.printf("Count of queries = %d\n", countOfQueries);
-            if (arraySizeParameter.isChangeable()) {
-                printer.printf("Array size changes from %d to %d with step %d\n", arraySizeParameter.getFrom(),
-                        arraySizeParameter.getTo(), arraySizeParameter.getStep());
-                printer.printf("Delta = %d\n", deltaParameter.getFrom());
-                printer.printf("Clients = %d\n", clientsParameter.getFrom());
-            } else if (deltaParameter.isChangeable()) {
-                printer.printf("Array size = %d\n", arraySizeParameter.getFrom());
-                printer.printf("Delta changes from %d to %d with step %d\n", deltaParameter.getFrom(),
-                        deltaParameter.getTo(), deltaParameter.getStep());
-                printer.printf("Clients = %d\n", clientsParameter.getFrom());
-            } else {
-                printer.printf("Array size = %d\n", arraySizeParameter.getFrom());
-                printer.printf("Delta = %d\n", deltaParameter.getFrom());
-                printer.printf("Count of clients changes from %d to %d with step %d\n", clientsParameter.getFrom(),
-                        clientsParameter.getTo(), clientsParameter.getStep());
-            }
-            printer.println(xString + ", Time ms");
+            printer.println("Architecture: " + architecture);
+            printer.printf(xString + ":;");
             for (int i = 0; i < metricX.size(); i++) {
-                printer.printf("%f %f\n", metricX.get(i), metricY.get(i));
+                printer.printf("%f;", metricX.get(i));
             }
+            printer.printf("\nT, ms:;");
+            for (int i = 0; i < metricX.size(); i++) {
+                printer.printf("%f;", metricY.get(i));
+            }
+            printer.printf("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }

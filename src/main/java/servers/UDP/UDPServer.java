@@ -52,7 +52,7 @@ abstract public class UDPServer implements BaseServer {
             s.setSoTimeout(TIMEOUT);
             while (!end) {
                 int sizeByteArray;
-                byte[] data = new byte[20000];
+                byte[] data = new byte[200000];
                 DatagramPacket dataPacket = new DatagramPacket(data, data.length);
                 long beginQueryHandler = System.currentTimeMillis();
                 try {
