@@ -5,6 +5,7 @@ import utils.Protocol;
 import utils.Utils;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 /**
@@ -31,56 +32,63 @@ public abstract class SocketIOServer implements BaseServer {
     protected abstract void handlerConnection();
 
     protected void handlerQuery(Utils.Connection connection) {
-        int arrayByteSize;
         while (!end) {
-            long beginQueryHandler = System.currentTimeMillis();
-            try {
-                arrayByteSize = connection.fromConnection.readInt();
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
-            }
-            if (arrayByteSize == -1) {
-                break;
-            }
-
-            byte[] byteArray = new byte[arrayByteSize];
-            Protocol.ArrayProto arrayProto;
-            try {
-                int readBytes = connection.fromConnection.read(byteArray);
-                if (readBytes != arrayByteSize) {
-                    break;
-                }
-                arrayProto = Protocol.ArrayProto.parseFrom(byteArray);
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
-            }
-
-            List<Integer> array = arrayProto.getElementList();
-
-            long beginQueryCount = System.currentTimeMillis();
-            array = Utils.sort(array);
-            long endQueryCount = System.currentTimeMillis();
-            Protocol.ArrayProto result = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
-
-            try {
-                connection.toConnection.writeInt(result.getSerializedSize());
-                result.writeTo(connection.toConnection);
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
-            }
-            long endQueryHandler = System.currentTimeMillis();
-            try {
-                connection.toConnection.writeLong(endQueryHandler - beginQueryHandler);
-                connection.toConnection.writeLong(endQueryCount - beginQueryCount);
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (!oneQueryHandler(connection)) {
                 break;
             }
         }
         connection.close();
     }
 
+    protected boolean oneQueryHandler(Utils.Connection connection) {
+        int arrayByteSize;
+        long beginQueryHandler = System.currentTimeMillis();
+        try {
+            arrayByteSize = connection.fromConnection.readInt();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        if (arrayByteSize == -1) {
+            return false;
+        }
+
+        byte[] byteArray = new byte[arrayByteSize];
+        Protocol.ArrayProto arrayProto;
+        try {
+            int readBytes = connection.fromConnection.read(byteArray);
+            if (readBytes != arrayByteSize) {
+                return false;
+            }
+            arrayProto = Protocol.ArrayProto.parseFrom(byteArray);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        List<Integer> array = arrayProto.getElementList();
+
+        long beginQueryCount = System.currentTimeMillis();
+        array = Utils.sort(array);
+        long endQueryCount = System.currentTimeMillis();
+        Protocol.ArrayProto result = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
+
+        try {
+            connection.toConnection.writeInt(result.getSerializedSize());
+            byte[] arrayByte = result.toByteArray();
+            connection.toConnection.write(arrayByte);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        long endQueryHandler = System.currentTimeMillis();
+        try {
+            connection.toConnection.writeLong(endQueryHandler - beginQueryHandler);
+            connection.toConnection.writeLong(endQueryCount - beginQueryCount);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
 }

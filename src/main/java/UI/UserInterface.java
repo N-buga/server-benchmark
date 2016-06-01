@@ -1,6 +1,7 @@
 package UI;
 
 import client.ClientTCP;
+import com.google.common.primitives.Doubles;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 import servers.BaseServer;
@@ -12,7 +13,9 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -31,10 +34,13 @@ public final class UserInterface {
     private static final String DESCRIPTION_COUNT_OF_CLIENTS = "Count of clients:";
     private static final String DESCRIPTION_DELTA_TIME = "Delta time:";
     private static final String DESCRIPTION_COUNT_OF_QUERIES = "Count of queries:";
+    private static final String HIDE_SEPARATE_GRAPHS = "hide separate";
+    private static final String SHOW_SEPARATE_GRAPHS = "show separate";
     private static Map<String, Parameter> parameters = new HashMap<>();
     private static JFrame frameClient = new JFrame();
     private static JFrame frameQueryHandler = new JFrame();
     private static JFrame frameQueryCount = new JFrame();
+    private static JComboBox showHide;
 
     static {
         parameters.put(DESCRIPTION_COUNT_OF_CLIENTS, new Parameter(1, 1, 1, false));
@@ -59,9 +65,25 @@ public final class UserInterface {
         JLabel labelEnterIP = new JLabel("server ip:");
         JLabel labelArchitecture = new JLabel("Architecture:");
 
-        String[] architectures = {"TCP.OneClientOneThread", "NIO.OneThread", "TCP.CachedThreadPoolServer"};
+        String[] architectures = {"TCP.OneClientOneThread", "NIO.OneThread", "TCP.CachedThreadPoolServer",
+                "TCP.NewQueryNewConnection", "NIO.CachedThreadPool", "NIO.FixedThreadPool", "NIO.NewQueryNewThread"};
         String[] changeableParameter = {"clients", "Delta", "size"};
+        String[] showHideParameter = {HIDE_SEPARATE_GRAPHS, SHOW_SEPARATE_GRAPHS};
 
+        showHide = new JComboBox<>(showHideParameter);
+        showHide.addActionListener(e -> {
+            JComboBox source = (JComboBox) e.getSource();
+            String selectedItem = (String) source.getSelectedItem();
+            if (selectedItem.equals(SHOW_SEPARATE_GRAPHS)) {
+                frameClient.setVisible(true);
+                frameQueryHandler.setVisible(true);
+                frameQueryCount.setVisible(true);
+            } else {
+                frameClient.setVisible(false);
+                frameQueryHandler.setVisible(false);
+                frameQueryCount.setVisible(false);
+            }
+        });
         JComboBox choiceArchitecture = new JComboBox<>(architectures);
         JComboBox choiceParameter = new JComboBox<>(changeableParameter);
 
@@ -75,6 +97,9 @@ public final class UserInterface {
         upBox.add(Box.createHorizontalStrut(7));
         upBox.add(new JLabel("Changeable parameter:"));
         upBox.add(choiceParameter);
+        upBox.add(Box.createHorizontalGlue());
+        upBox.add(new JLabel("Graphs:"));
+        upBox.add(showHide);
         upBox.add(Box.createHorizontalGlue());
 
         choiceParameter.addActionListener(e -> {
@@ -99,7 +124,8 @@ public final class UserInterface {
         JButton doCount = new JButton("Count!");
         doCount.setPreferredSize(new Dimension(350, 25));
         doCount.addActionListener(e -> {
-            accountManager((String) choiceArchitecture.getSelectedItem(), jTextField.getText()); });
+            accountManager((String) choiceArchitecture.getSelectedItem(), jTextField.getText());
+        });
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(doCount);
 
@@ -359,15 +385,16 @@ public final class UserInterface {
             }
         }
         server.close();
-        frameClient.setVisible(true);
-        frameQueryHandler.setVisible(true);
-        frameQueryCount.setVisible(true);
-
+        if (showHide.getSelectedItem() == SHOW_SEPARATE_GRAPHS) {
+            frameClient.setVisible(true);
+            frameQueryHandler.setVisible(true);
+            frameQueryCount.setVisible(true);
+        }
     }
 
-    private static void createXChart(String architectureName, ArrayList<Double> xDataClient, ArrayList<Double> yDataClient,
-                                     ArrayList<Double> xDataQueryHandler, ArrayList<Double> yDataQueryHandler,
-                                     ArrayList<Double> xDataQueryCount, ArrayList<Double> yDataQueryCount,
+    private static void createXChart(String architectureName, List<Double> xDataClient, List<Double> yDataClient,
+                                     List<Double> xDataQueryHandler, List<Double> yDataQueryHandler,
+                                     List<Double> xDataQueryCount, List<Double> yDataQueryCount,
                                      String xString) {
 
         XYChart chartClient = QuickChart.getChart("Client time", xString, "T, ms", "T(" + xString + ")",
@@ -379,7 +406,8 @@ public final class UserInterface {
         XYChart chartQueryCount = QuickChart.getChart("Execute query time on Server", xString, "T, ms",
                 "T(" + xString + ")", xDataQueryCount, yDataQueryCount);
 
-        XYChart chart = new XYChartBuilder().width(600).height(600).title(architectureName).xAxisTitle(xString).yAxisTitle("T, ms").build();
+        XYChart chart = new XYChartBuilder().width(600).height(600).title(architectureName).
+                xAxisTitle(xString).yAxisTitle("T, ms").build();
 
         chart.addSeries("Client time", xDataClient, yDataClient);
 
@@ -396,7 +424,9 @@ public final class UserInterface {
         XChartPanel chartPanel = new XChartPanel(chart);
         // Show it
         BorderLayout contentLayout = (BorderLayout) CONTENT_PANE.getLayout();
-        CONTENT_PANE.remove(contentLayout.getLayoutComponent(BorderLayout.EAST));
+        if (contentLayout.getLayoutComponent(BorderLayout.EAST) != null) {
+            CONTENT_PANE.remove(contentLayout.getLayoutComponent(BorderLayout.EAST));
+        }
         CONTENT_PANE.add(chartPanel, BorderLayout.EAST);
         drawFrame();
 

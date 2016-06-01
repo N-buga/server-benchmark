@@ -9,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -22,8 +23,22 @@ public class Utils {
         public DataInputStream fromConnection;
         public DataOutputStream toConnection;
         private Socket socket;
+        private String ip;
+        private int port;
 
         public Connection(Socket socket) {
+            this.socket = socket;
+            try {
+                fromConnection = new DataInputStream(socket.getInputStream());
+                toConnection = new DataOutputStream(socket.getOutputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public Connection(Socket socket, String ip, int port) {
+            this.ip = ip;
+            this.port = port;
             this.socket = socket;
             try {
                 fromConnection = new DataInputStream(socket.getInputStream());
@@ -52,6 +67,18 @@ public class Utils {
                 } catch (IOException ignored) {
                 }
             }
+        }
+
+        public Socket getSocket() {
+            return socket;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public int getPort() {
+            return port;
         }
     }
 
@@ -108,5 +135,17 @@ public class Utils {
         client.closeConnection();
         long endTime = System.currentTimeMillis();
         return endTime - beginTime;
+    }
+
+    public static byte[] intToByteArray(int value) {
+        return new byte[] {
+                (byte)(value >>> 24),
+                (byte)(value >>> 16),
+                (byte)(value >>> 8),
+                (byte)value};
+    }
+
+    public static int fromByteArray(byte[] bytes) {
+        return ByteBuffer.wrap(bytes).getInt();
     }
 }

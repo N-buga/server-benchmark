@@ -1,28 +1,31 @@
 package servers.NIO;
 
 import javafx.util.Pair;
-import servers.BaseServer;
 import utils.Protocol;
 import utils.Utils;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
- * Created by n_buga on 28.05.16.
+ * Created by n_buga on 01.06.16.
  */
-public class OneThread extends NIOServer {
-    private final int PORT = 9997;
+abstract public class NIOThreadPool extends NIOServer {
 
-    public OneThread() {
+    public NIOThreadPool() {
         super();
     }
+
+    abstract protected ExecutorService getExecutorService();
 
     @Override
     protected void handlerSelectionKey(Selector selector, SelectionKey selectionKey) {
@@ -73,20 +76,32 @@ public class OneThread extends NIOServer {
 
                 Protocol.ArrayProto arrayProto = Protocol.ArrayProto.parseFrom(message.array());
                 List<Integer> array = arrayProto.getElementList();
-                long beginTimeQueryCount = System.currentTimeMillis();
-                List<Integer> result = Utils.sort(array);
-                long endTimeQueryCount = System.currentTimeMillis();
+                Future<Pair<List<Integer>, Long>> result = getExecutorService().submit(() -> {
+                    long beginTimeQueryCount = System.currentTimeMillis();
+                    List<Integer> sortedArray = Utils.sort(array);
+                    long endTimeQueryCount = System.currentTimeMillis();
+                    return new Pair<>(sortedArray, endTimeQueryCount - beginTimeQueryCount);
+                });
                 selectionKey = selectionKey.interestOps(SelectionKey.OP_WRITE);
                 selectionKey.attach(new Pair<>(result,
-                        new long[]{beginTimeQueryHandler, endTimeQueryCount - beginTimeQueryCount}));
+                        beginTimeQueryHandler));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         } else if (selectionKey.isWritable()) {
-            Pair<List<Integer>, long[]> attachObject = (Pair<List<Integer>, long[]>) selectionKey.attachment();
-            List<Integer> result = attachObject.getKey();
+            Pair<Future<Pair<List<Integer>, Long>>, Long> attachObject =
+                    (Pair<Future<Pair<List<Integer>, Long>>, Long>) selectionKey.attachment();
+            List<Integer> sortedArray;
+            Pair<List<Integer>, Long> result;
+            try {
+                result = attachObject.getKey().get();
+                sortedArray = result.getKey();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                return;
+            }
 
-            Protocol.ArrayProto array = Protocol.ArrayProto.newBuilder().addAllElement(result).build();
+            Protocol.ArrayProto array = Protocol.ArrayProto.newBuilder().addAllElement(sortedArray).build();
 
             ByteBuffer byteSizeMsg = ByteBuffer.allocate(4);
             byteSizeMsg.putInt(array.getSerializedSize());
@@ -102,24 +117,19 @@ public class OneThread extends NIOServer {
             writeAllBuffer(socketChannel, resultBuffer);
 
             ByteBuffer times = ByteBuffer.allocate(16);
-            long timeQueryHandler = System.currentTimeMillis() - attachObject.getValue()[0];
-            times.putLong(timeQueryHandler);
-            times.putLong(attachObject.getValue()[1]);
+            times.putLong(System.currentTimeMillis() - attachObject.getValue());
+            times.putLong(result.getValue());
             times.flip();
             writeAllBuffer(socketChannel, times);
+
             try {
                 socketChannel.register(selector, SelectionKey.OP_READ);
             } catch (ClosedChannelException e) {
                 e.printStackTrace();
             }
+
             selectionKey.cancel();
-
         }
-    }
-
-    @Override
-    public int getPort() {
-        return PORT;
     }
 
 }

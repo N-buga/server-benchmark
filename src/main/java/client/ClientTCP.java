@@ -1,6 +1,7 @@
 package client;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.omg.CORBA.TIMEOUT;
 import utils.Protocol;
 import utils.Utils;
 
@@ -23,7 +24,7 @@ public class ClientTCP {
     public void createConnection(int port, String ip) {
         try {
             Socket clientSocket = new Socket(ip, port);
-            connection = new Utils.Connection(clientSocket);
+            connection = new Utils.Connection(clientSocket, ip, port);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -32,13 +33,15 @@ public class ClientTCP {
     public void closeConnection() {
         try {
             connection.toConnection.writeInt(-1);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignored) {
         }
         connection.close();
     }
 
     public List<Integer> sortArray(List<Integer> array) {
+        if (connection.getSocket().isClosed()) {
+            createConnection(connection.getPort(), connection.getIp());
+        }
         try {
             Protocol.ArrayProto arrayProto = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
             connection.toConnection.writeInt(arrayProto.getSerializedSize());
@@ -57,14 +60,8 @@ public class ClientTCP {
         byte[] byteArray = new byte[countBytes];
         try {
             int readBytes = 0;
-            for (int i = 0; i < 20; i++) {
+            while (readBytes != countBytes) {
                 readBytes += connection.fromConnection.read(byteArray);
-                if (readBytes == countBytes) {
-                    break;
-                }
-            }
-            if (readBytes != countBytes) {
-                return null;
             }
         } catch (IOException e) {
             e.printStackTrace();
