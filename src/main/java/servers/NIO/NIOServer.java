@@ -1,19 +1,13 @@
 package servers.NIO;
 
-import javafx.util.Pair;
-import jdk.management.resource.internal.FutureWrapper;
 import servers.BaseServer;
-import utils.Protocol;
-import utils.Utils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 /**
  * Created by n_buga on 31.05.16.

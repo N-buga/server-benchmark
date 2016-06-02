@@ -52,7 +52,7 @@ public class ClientTCP extends Client{
             byteArray = new byte[countBytes];
             int readBytes = 0;
             while (readBytes != countBytes) {
-                readBytes += connection.fromConnection.read(byteArray);
+                readBytes += connection.fromConnection.read(byteArray, readBytes, countBytes - readBytes);
             }
         } catch (SocketException | EOFException e) {
             connection.close();
@@ -64,7 +64,7 @@ public class ClientTCP extends Client{
                 byteArray = new byte[countBytes];
                 int readBytes = 0;
                 while (readBytes != countBytes) {
-                    readBytes += connection.fromConnection.read(byteArray);
+                    readBytes += connection.fromConnection.read(byteArray, readBytes, countBytes - readBytes);
                 }
             } catch (IOException e1) {
                 e1.printStackTrace();

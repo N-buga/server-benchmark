@@ -121,11 +121,18 @@ public final class UserInterface {
             JComboBox source = (JComboBox) e.getSource();
             String selectedItem = (String) source.getSelectedItem();
             JPanel settingsPanel;
+            parameters.get(DESCRIPTION_COUNT_OF_CLIENTS).setChangeable(false);
+            parameters.get(DESCRIPTION_DELTA_TIME).setChangeable(false);
+            parameters.get(DESCRIPTION_SIZE_ARRAY).setChangeable(false);
+
             if (selectedItem.equals(changeableParameter[0])) {
+                parameters.get(DESCRIPTION_COUNT_OF_CLIENTS).setChangeable(true);
                 settingsPanel = createSettingsForClients();
             } else if (selectedItem.equals(changeableParameter[1])) {
+                parameters.get(DESCRIPTION_DELTA_TIME).setChangeable(true);
                 settingsPanel = createSettingsForDelta();
             } else {
+                parameters.get(DESCRIPTION_SIZE_ARRAY).setChangeable(true);
                 settingsPanel = createSettingsForSize();
             }
             BorderLayout contentLayout = (BorderLayout) CONTENT_PANE.getLayout();
