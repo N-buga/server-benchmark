@@ -32,11 +32,6 @@ public class NewQueryNewConnection extends SocketIOServer {
                 Utils.Connection connection = new Utils.Connection(socket);
                 oneQueryHandler(connection);
                 connection.close();
-                try {
-                    Thread.sleep(TIMEOUT);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             }
         } catch (IOException e) {
             e.printStackTrace();

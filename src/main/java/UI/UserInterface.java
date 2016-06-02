@@ -46,9 +46,9 @@ public final class UserInterface {
         add("Query count");
     }};
     private static Map<String, String> briefNameParameter = new HashMap<String, String>() {{
-        put(DESCRIPTION_DELTA_TIME, "Delta");
-        put(DESCRIPTION_COUNT_OF_CLIENTS, "M");
-        put(DESCRIPTION_COUNT_OF_QUERIES, "N");
+        put("Delta", "Delta");
+        put("clients", "M");
+        put("size", "N");
     }};
     private static Map<String, Parameter> parameters = new HashMap<>();
     private static JFrame frameClient = new JFrame();

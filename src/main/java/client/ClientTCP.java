@@ -5,6 +5,7 @@ import org.omg.CORBA.TIMEOUT;
 import utils.Protocol;
 import utils.Utils;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -42,37 +43,35 @@ public class ClientTCP extends Client{
     @Override
     public List<Integer> sortArray(List<Integer> array) {
         Protocol.ArrayProto arrayProto = Protocol.ArrayProto.newBuilder().addAllElement(array).build();
+        int countBytes;
+        byte[] byteArray;;
         try {
             connection.toConnection.writeInt(arrayProto.getSerializedSize());
             connection.toConnection.write(arrayProto.toByteArray());
-        } catch (SocketException e) {
+            countBytes = connection.fromConnection.readInt();
+            byteArray = new byte[countBytes];
+            int readBytes = 0;
+            while (readBytes != countBytes) {
+                readBytes += connection.fromConnection.read(byteArray);
+            }
+        } catch (SocketException | EOFException e) {
             connection.close();
             createConnection(connection.getPort(), connection.getIp());
             try {
                 connection.toConnection.writeInt(arrayProto.getSerializedSize());
                 connection.toConnection.write(arrayProto.toByteArray());
+                countBytes = connection.fromConnection.readInt();
+                byteArray = new byte[countBytes];
+                int readBytes = 0;
+                while (readBytes != countBytes) {
+                    readBytes += connection.fromConnection.read(byteArray);
+                }
             } catch (IOException e1) {
                 e1.printStackTrace();
+                return null;
             }
         }
         catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-        int countBytes;
-        try {
-            countBytes = connection.fromConnection.readInt();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-        byte[] byteArray = new byte[countBytes];
-        try {
-            int readBytes = 0;
-            while (readBytes != countBytes) {
-                readBytes += connection.fromConnection.read(byteArray);
-            }
-        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
