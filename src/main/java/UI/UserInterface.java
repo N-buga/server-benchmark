@@ -451,10 +451,12 @@ public final class UserInterface {
             frameQueryCount.setVisible(true);
         }
 
-        for (String metric: metricsDescription) {
-            toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
-                    xDataClient, yDataClient, metric, countOfQueries);
-        }
+        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                xDataClient, yDataClient, metricsDescription.get(0), countOfQueries);
+        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                xDataQueryHandler, yDataQueryHandler, metricsDescription.get(1), countOfQueries);
+        toFile(architectureName, xString, arraySizeParameter, deltaTimeParameter, clientsParameter,
+                xDataQueryCount, yDataQueryCount, metricsDescription.get(2), countOfQueries);
     }
 
     private static void createXChart(String architectureName, List<Double> xDataClient, List<Double> yDataClient,
@@ -573,7 +575,7 @@ public final class UserInterface {
                 printer.printf("%f;", metricX.get(i));
             }
             printer.printf("\nT, ms:;");
-            for (int i = 0; i < metricX.size(); i++) {
+            for (int i = 0; i < metricY.size(); i++) {
                 printer.printf("%f;", metricY.get(i));
             }
             printer.printf("\n");
