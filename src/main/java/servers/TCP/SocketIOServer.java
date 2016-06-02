@@ -43,13 +43,13 @@ public abstract class SocketIOServer implements BaseServer {
 
     protected boolean oneQueryHandler(Utils.Connection connection) {
         int arrayByteSize;
-        long beginQueryHandler = System.currentTimeMillis();
         try {
             arrayByteSize = connection.fromConnection.readInt();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
+        long beginQueryHandler = System.currentTimeMillis();
         if (arrayByteSize == -1) {
             return false;
         }

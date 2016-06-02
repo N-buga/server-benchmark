@@ -33,16 +33,9 @@ public class RunAllServers {
         }
         Scanner scanner = new Scanner(System.in);
         while (true) {
-            if (scanner.hasNext()) {
-                String command = scanner.next();
-                if (command.equals("exit")) {
-                    return;
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            String command = scanner.next();
+            if (command.equals("exit")) {
+                return;
             }
         }
     }
