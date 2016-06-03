@@ -57,9 +57,9 @@ public abstract class SocketIOServer implements BaseServer {
         byte[] byteArray = new byte[arrayByteSize];
         Protocol.ArrayProto arrayProto;
         try {
-            int readBytes = connection.fromConnection.read(byteArray);
-            if (readBytes != arrayByteSize) {
-                return false;
+            int readBytes = 0;
+            while (readBytes != arrayByteSize) {
+                readBytes += connection.fromConnection.read(byteArray, readBytes, arrayByteSize - readBytes);
             }
             arrayProto = Protocol.ArrayProto.parseFrom(byteArray);
         } catch (IOException e) {

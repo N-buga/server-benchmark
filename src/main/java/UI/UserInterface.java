@@ -75,7 +75,7 @@ public final class UserInterface {
     }
 
     public static void main(String[] args) {
-        JTextField jTextField = new JTextField("127.0.0.1");
+        JTextField jTextField = new JTextField("192.168.67.22");
         JLabel labelEnterIP = new JLabel("server ip:");
         JLabel labelArchitecture = new JLabel("Architecture:");
 
@@ -147,14 +147,13 @@ public final class UserInterface {
         doCount.setPreferredSize(new Dimension(350, 25));
         doCount.addActionListener(e -> {
             String xString = briefNameParameter.get((String)choiceParameter.getSelectedItem());
-            for (String metric: metricsDescription) {
-                String fileName = "change_" + xString + "_metric_" + metric + ".csv";
-                Path pathFile = Paths.get(".", "results", "Data_files", fileName);
-                try {
-                    Files.deleteIfExists(pathFile);
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }
+            String metric = briefNameParameter.get((String) choiceParameter.getSelectedItem());
+            String fileName = "change_" + xString + "_metric_" + metric + ".csv";
+            Path pathFile = Paths.get(".", "results", "Data_files", fileName);
+            try {
+                Files.deleteIfExists(pathFile);
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
             String selectedItem = (String) choiceArchitecture.getSelectedItem();
             if (selectedItem.equals("CountForAll")) {
