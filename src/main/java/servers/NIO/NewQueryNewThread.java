@@ -96,6 +96,12 @@ public class NewQueryNewThread extends NIOServer {
                 final RealArraySortedArray result = new RealArraySortedArray(array);
                 result.setThread(new Thread(result::sort));
                 result.getThread().start();
+                try {
+                    result.getThread().join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    return;
+                }
                 long endTimeQueryCount = System.currentTimeMillis();
 
                 selectionKey = selectionKey.interestOps(SelectionKey.OP_WRITE);
