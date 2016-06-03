@@ -21,6 +21,8 @@ public class NewQueryNewThread extends NIOServer {
         private List<Integer> real;
         private List<Integer> sorted;
         private Thread curThread;
+        private long beginTimeQueryCount;
+        private long endTimeQueryCount;
 
         public RealArraySortedArray(List<Integer> real) {
             this.real = real;
@@ -35,11 +37,17 @@ public class NewQueryNewThread extends NIOServer {
         }
 
         public void sort() {
+            beginTimeQueryCount = System.currentTimeMillis();
             sorted = Utils.sort(real);
+            endTimeQueryCount = System.currentTimeMillis();
         }
 
         public List<Integer> getSorted() {
             return sorted;
+        }
+
+        public long getCountTime() {
+            return endTimeQueryCount - beginTimeQueryCount;
         }
     }
 
@@ -92,7 +100,6 @@ public class NewQueryNewThread extends NIOServer {
 
                 Protocol.ArrayProto arrayProto = Protocol.ArrayProto.parseFrom(message.array());
                 List<Integer> array = arrayProto.getElementList();
-                long beginTimeQueryCount = System.currentTimeMillis();
                 final RealArraySortedArray result = new RealArraySortedArray(array);
                 result.setThread(new Thread(result::sort));
                 result.getThread().start();
@@ -102,17 +109,16 @@ public class NewQueryNewThread extends NIOServer {
                     e.printStackTrace();
                     return;
                 }
-                long endTimeQueryCount = System.currentTimeMillis();
 
                 selectionKey = selectionKey.interestOps(SelectionKey.OP_WRITE);
 
                 selectionKey.attach(new Pair<>(result,
-                        new long[]{beginTimeQueryHandler, endTimeQueryCount - beginTimeQueryCount}));
+                        beginTimeQueryHandler));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         } else if (selectionKey.isWritable()) {
-            Pair<RealArraySortedArray, long[]> attachObject = (Pair<RealArraySortedArray, long[]>) selectionKey.attachment();
+            Pair<RealArraySortedArray, Long> attachObject = (Pair<RealArraySortedArray, Long>) selectionKey.attachment();
             List<Integer> result = null;
             try {
                 attachObject.getKey().getThread().join();
@@ -137,8 +143,8 @@ public class NewQueryNewThread extends NIOServer {
             writeAllBuffer(socketChannel, resultBuffer);
 
             ByteBuffer times = ByteBuffer.allocate(16);
-            times.putLong(System.currentTimeMillis() - attachObject.getValue()[0]);
-            times.putLong(attachObject.getValue()[1]);
+            times.putLong(System.currentTimeMillis() - attachObject.getValue());
+            times.putLong(attachObject.getKey().getCountTime());
             times.flip();
             writeAllBuffer(socketChannel, times);
 
