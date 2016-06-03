@@ -54,13 +54,13 @@ abstract public class UDPServer implements BaseServer {
                 int sizeByteArray;
                 byte[] data = new byte[200000];
                 DatagramPacket dataPacket = new DatagramPacket(data, data.length);
-                long beginQueryHandler = System.currentTimeMillis();
                 try {
                     s.receive(dataPacket);
                 } catch (SocketTimeoutException e) {
                     continue;
                 }
 
+                long beginQueryHandler = System.currentTimeMillis();
                 byte[] size = ArrayUtils.subarray(data, 0, 4);
                 sizeByteArray = Utils.fromByteArray(size);
                 if (sizeByteArray == -1) {

@@ -68,11 +68,13 @@ public class ClientTCP extends Client{
                 }
             } catch (IOException e1) {
                 e1.printStackTrace();
+                connection.close();
                 return null;
             }
         }
         catch (IOException e) {
             e.printStackTrace();
+            connection.close();
             return null;
         }
 

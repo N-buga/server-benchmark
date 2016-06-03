@@ -41,17 +41,19 @@ abstract public class NIOThreadPool extends NIOServer {
                 System.out.printf("The problem with register a new client\n");
             }
         } else if (selectionKey.isReadable()) {
-            long beginTimeQueryHandler = System.currentTimeMillis();
             ByteBuffer byteSizeMsg = ByteBuffer.allocate(4);
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+            long beginTimeQueryHandler;
             try {
                 int readBytes = 0;
                 while (readBytes != 4) {
                     readBytes += socketChannel.read(byteSizeMsg);
                 }
+                beginTimeQueryHandler = System.currentTimeMillis();
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.printf("Can't read from channel\n");
+                return;
             }
             byteSizeMsg.flip();
             int sizeMsg = byteSizeMsg.getInt();
