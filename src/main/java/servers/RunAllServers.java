@@ -9,6 +9,7 @@ import servers.TCP.OneClientOneThread;
 import servers.UDP.FixedThreadPool;
 
 import java.util.Scanner;
+import java.util.concurrent.SynchronousQueue;
 
 /**
  * Created by n_buga on 02.06.16.
@@ -31,6 +32,7 @@ public class RunAllServers {
         for (int i = 0; i < 9; i++) {
             servers[i].start();
         }
+        System.out.println("Servers ready!");
         Scanner scanner = new Scanner(System.in);
         while (true) {
             String command = scanner.next();

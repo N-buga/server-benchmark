@@ -1,5 +1,7 @@
 package servers.UDP;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,7 +22,7 @@ public class NewQueryNewThread extends UDPServer {
     }
 
     @Override
-    protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+    protected void handlerQuery(int remotePort, InetAddress remoteAddress, List<Integer> arrayForSorted,
                                 long beginQueryHandler) {
         (new Thread(() -> countAndSend(remotePort, remoteAddress, arrayForSorted, beginQueryHandler))).start();
     }
