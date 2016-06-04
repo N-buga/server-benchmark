@@ -7,10 +7,7 @@ import utils.Utils;
 
 import javax.rmi.CORBA.Util;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,7 +46,7 @@ abstract public class UDPServer implements BaseServer {
 
     private void handlerConnection() {
         try (DatagramSocket s = new DatagramSocket(getPort())) {
-            s.setSoTimeout(TIMEOUT);
+//            s.setSoTimeout(TIMEOUT);
             while (!end) {
                 int sizeByteArray;
                 byte[] data = new byte[200000];
@@ -64,12 +61,13 @@ abstract public class UDPServer implements BaseServer {
                 byte[] size = ArrayUtils.subarray(data, 0, 4);
                 sizeByteArray = Utils.fromByteArray(size);
                 if (sizeByteArray == -1) {
+                    System.out.println(-1);
                     continue;
                 }
                 byte[] byteArray = ArrayUtils.subarray(data, 4, sizeByteArray + 4);
 
                 Protocol.ArrayProto arrayForSorted = Protocol.ArrayProto.parseFrom(byteArray);
-                handlerQuery(dataPacket.getPort(), dataPacket.getAddress().getHostName(),
+                handlerQuery(dataPacket.getPort(), dataPacket.getAddress(),
                     arrayForSorted.getElementList(), beginQueryHandler);
             }
         } catch (IOException e) {
@@ -78,9 +76,8 @@ abstract public class UDPServer implements BaseServer {
         }
     }
 
-    protected void countAndSend(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+    protected void countAndSend(int remotePort, InetAddress remoteAddress, List<Integer> arrayForSorted,
                                 long beginQueryHandler) {
-
         long beginQueryCount = System.currentTimeMillis();
         List<Integer> result = Utils.sort(arrayForSorted);
         long endQueryCount = System.currentTimeMillis();
@@ -89,20 +86,19 @@ abstract public class UDPServer implements BaseServer {
 
         try (DatagramSocket s = new DatagramSocket())
         {
-            InetAddress ip = InetAddress.getByName(remoteAddress);
             byte[] arrayProtoSize = Utils.intToByteArray(arrayProto.getSerializedSize());
             byte[] data = ArrayUtils.addAll(arrayProtoSize, arrayProto.toByteArray());
             data = ArrayUtils.addAll(data, Utils.longToByteArray(System.currentTimeMillis() - beginQueryHandler));
             data = ArrayUtils.addAll(data, Utils.longToByteArray(endQueryCount - beginQueryCount));
 
             DatagramPacket dataPacket = new DatagramPacket(data,
-                    data.length, ip, remotePort);
+                    data.length, remoteAddress, remotePort);
             s.send(dataPacket);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    abstract protected void handlerQuery(int remotePort, String remoteAddress, List<Integer> arrayForSorted,
+    abstract protected void handlerQuery(int remotePort, InetAddress remoteAddress, List<Integer> arrayForSorted,
                                          long beginQueryHandler);
 }
